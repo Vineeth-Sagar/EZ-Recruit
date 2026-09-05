@@ -3,6 +3,7 @@ ai_engine.py
 Core AI engine powering resume parsing and job-resume alignment scoring.
 Uses OpenRouter (e.g., nvidia/nemotron-3-super-120b-a12b:free).
 """
+import hashlib
 import json
 import os
 import time
@@ -100,6 +101,13 @@ def _extract_json(text: str) -> Dict:
 # ─────────────────────────────────────────────────────────────────
 # PDF → Text
 # ─────────────────────────────────────────────────────────────────
+
+def compute_resume_hash(pdf_path: Path) -> str:
+    """Hash a resume PDF's bytes so callers can tell when it hasn't changed
+    and skip re-parsing it with the LLM (parse_resume was previously called
+    fresh on every single run regardless of whether the file changed)."""
+    return hashlib.sha256(Path(pdf_path).read_bytes()).hexdigest()
+
 
 def extract_text_from_pdf(pdf_path: Path) -> str:
     """Extract plain text from a PDF resume using PyMuPDF."""

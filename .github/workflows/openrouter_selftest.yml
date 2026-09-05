@@ -1,0 +1,36 @@
+name: 🩺 OpenRouter Self-Test
+
+# Catches a broken AI backend (bad/expired key, invalid model id, provider
+# outage) on its own — independent of the daily job hunt, which would
+# otherwise silently degrade to keyword-only matching (see
+# job_hunter/selftest.py for the full story).
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'  # Weekly — Monday 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🩺 Run OpenRouter self-test
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python -m job_hunter.selftest

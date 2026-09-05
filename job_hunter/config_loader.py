@@ -24,6 +24,11 @@ class ResumeProfile:
     target_roles: List[str]
     extracted_skills: List[str]
     last_updated: str = ""
+    # Cache of the last successful LLM parse, keyed by a hash of the PDF
+    # bytes — lets the engine skip re-parsing (and re-spending LLM quota)
+    # when the resume file hasn't changed since the last run.
+    resume_hash: str = ""
+    extracted_full: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def pdf_path(self) -> Path:
@@ -80,6 +85,8 @@ def load_config() -> Config:
             target_roles=p.get("target_roles", []),
             extracted_skills=p.get("extracted_skills", []),
             last_updated=p.get("last_updated", ""),
+            resume_hash=p.get("resume_hash", ""),
+            extracted_full=p.get("extracted_full", {}) or {},
         )
         for p in raw.get("resume_profiles", [])
     ]
@@ -102,6 +109,34 @@ def load_config() -> Config:
         resume_profiles=profiles,
     )
     return cfg
+
+
+def save_resume_cache(profile_id: str, resume_hash: str, extracted_full: Dict[str, Any]) -> None:
+    """Persist a fresh resume parse into config.json so the next run can
+    skip calling the LLM again for an unchanged PDF. Only touches the one
+    matching resume_profiles entry — re-reads the file first so we don't
+    clobber unrelated settings someone else (e.g. the Streamlit app) saved
+    since this process started."""
+    if not CONFIG_PATH.exists():
+        return
+
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+
+    found = False
+    for p in raw.get("resume_profiles", []):
+        if p.get("id") == profile_id:
+            p["resume_hash"] = resume_hash
+            # Never persist the raw resume text — only the structured parse.
+            p["extracted_full"] = {k: v for k, v in extracted_full.items() if k != "_raw_text"}
+            found = True
+            break
+
+    if not found:
+        return
+
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(raw, f, indent=2, ensure_ascii=False)
 
 
 def get_openrouter_api_key() -> str:

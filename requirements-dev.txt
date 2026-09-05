@@ -1,0 +1,3 @@
+# Dev/test-only dependencies — not needed by the production bot or the
+# Streamlit app, so kept separate from requirements.txt.
+pytest>=8.0.0

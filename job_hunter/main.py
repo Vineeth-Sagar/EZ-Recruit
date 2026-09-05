@@ -6,6 +6,7 @@ Runs every morning via GitHub Actions cron.
 import logging
 import sys
 import json
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from datetime import datetime
 from pathlib import Path
 from collections import Counter
@@ -22,11 +23,11 @@ logger = logging.getLogger("OpportunityBot")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from job_hunter.config_loader import load_config, get_openrouter_api_key, get_gmail_app_password, get_serpapi_key, ensure_dirs
+from job_hunter.config_loader import load_config, get_openrouter_api_key, get_gmail_app_password, get_serpapi_key, ensure_dirs, save_resume_cache
 from job_hunter.deduplicator import filter_new_jobs, mark_jobs_seen, clear_old_entries
 from job_hunter.ai_engine import (
     parse_resume, batch_match_jobs_against_all_profiles,
-    generate_resume_tips, extract_text_from_pdf, AI_UNAVAILABLE_MARKER,
+    generate_resume_tips, extract_text_from_pdf, compute_resume_hash, AI_UNAVAILABLE_MARKER,
 )
 from job_hunter.excel_builder import build_excel
 from job_hunter.emailer import send_report_email, send_error_alert
@@ -43,108 +44,113 @@ def gather_all_roles(config) -> list:
     return list(roles)
 
 
-def run_scrapers(config, roles: list, serpapi_key: str = "") -> list:
-    """Run all enabled scrapers and merge results."""
-    all_jobs = []
-    sources  = config.enabled_sources
-    locs     = config.preferences if hasattr(config, "preferences") else ["Bengaluru"]
-    locations = config.locations
+def _build_scraper_tasks(sources: dict, roles: list, locations: list, serpapi_key: str):
+    """Build a (name, zero-arg callable) task per enabled source. The import
+    happens inside each callable (not at module load time) so one source's
+    missing/broken dependency can't prevent the others from running."""
+    tasks = []
 
-    # ── JobSpy (LinkedIn + Indeed + Glassdoor) ───────────────
     if any(sources.get(s) for s in ["linkedin", "indeed", "glassdoor"]):
-        try:
+        def _run_jobspy():
             from job_hunter.scrapers.jobspy_scraper import scrape_jobspy
-            jobs = scrape_jobspy(roles, locations, sources)
-            all_jobs.extend(jobs)
-            logger.info(f"[Main] JobSpy: {len(jobs)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] JobSpy failed: {e}")
+            return scrape_jobspy(roles, locations, sources)
+        tasks.append(("JobSpy", _run_jobspy))
 
-    # ── Naukri ───────────────────────────────────────────────
     if sources.get("naukri"):
-        try:
+        def _run_naukri():
             from job_hunter.scrapers.naukri_scraper import scrape_naukri
-            jobs = scrape_naukri(roles, locations)
-            all_jobs.extend(jobs)
-            logger.info(f"[Main] Naukri: {len(jobs)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] Naukri failed: {e}")
+            return scrape_naukri(roles, locations)
+        tasks.append(("Naukri", _run_naukri))
 
-    # ── Wellfound ────────────────────────────────────────────
     if sources.get("wellfound"):
-        try:
+        def _run_wellfound():
             from job_hunter.scrapers.wellfound_scraper import scrape_wellfound
-            jobs = scrape_wellfound(roles)
-            all_jobs.extend(jobs)
-            logger.info(f"[Main] Wellfound: {len(jobs)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] Wellfound failed: {e}")
+            return scrape_wellfound(roles)
+        tasks.append(("Wellfound", _run_wellfound))
 
-    # ── Internshala ──────────────────────────────────────────
     if sources.get("internshala"):
-        try:
+        def _run_internshala():
             from job_hunter.scrapers.internshala_scraper import scrape_internshala
-            jobs = scrape_internshala(roles, locations)
-            all_jobs.extend(jobs)
-            logger.info(f"[Main] Internshala: {len(jobs)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] Internshala failed: {e}")
+            return scrape_internshala(roles, locations)
+        tasks.append(("Internshala", _run_internshala))
 
-    # ── Unstop + Cutshort ────────────────────────────────────
     if sources.get("unstop"):
-        try:
-            from job_hunter.scrapers.unstop_scraper import scrape_unstop, scrape_cutshort
-            jobs_u = scrape_unstop(roles)
-            all_jobs.extend(jobs_u)
-            logger.info(f"[Main] Unstop: {len(jobs_u)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] Unstop failed: {e}")
+        def _run_unstop():
+            from job_hunter.scrapers.unstop_scraper import scrape_unstop
+            return scrape_unstop(roles)
+        tasks.append(("Unstop", _run_unstop))
 
     if sources.get("cutshort"):
-        try:
+        def _run_cutshort():
             from job_hunter.scrapers.unstop_scraper import scrape_cutshort
-            jobs_c = scrape_cutshort(roles)
-            all_jobs.extend(jobs_c)
-            logger.info(f"[Main] Cutshort: {len(jobs_c)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] Cutshort failed: {e}")
+            return scrape_cutshort(roles)
+        tasks.append(("Cutshort", _run_cutshort))
 
-    # ── YC Jobs ──────────────────────────────────────────────
     if sources.get("yc_jobs"):
-        try:
+        def _run_yc():
             from job_hunter.scrapers.yc_scraper import scrape_yc_jobs
-            jobs = scrape_yc_jobs(roles, locations)
-            all_jobs.extend(jobs)
-            logger.info(f"[Main] YC Jobs: {len(jobs)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] YC Jobs failed: {e}")
+            return scrape_yc_jobs(roles, locations)
+        tasks.append(("YC Jobs", _run_yc))
 
-    # ── HackerNews ───────────────────────────────────────────
     if sources.get("hackernews"):
-        try:
+        def _run_hn():
             from job_hunter.scrapers.hn_scraper import scrape_hn_hiring
-            jobs = scrape_hn_hiring(roles, locations)
-            all_jobs.extend(jobs)
-            logger.info(f"[Main] HackerNews: {len(jobs)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] HackerNews failed: {e}")
+            return scrape_hn_hiring(roles, locations)
+        tasks.append(("HackerNews", _run_hn))
 
-    # ── SerpAPI (Google Jobs) ─────────────────────────────────
     if sources.get("serpapi"):
-        try:
+        def _run_serpapi():
             from job_hunter.scrapers.serpapi_scraper import scrape_serpapi
-            jobs = scrape_serpapi(roles, locations, serpapi_key)
-            all_jobs.extend(jobs)
-            logger.info(f"[Main] SerpAPI: {len(jobs)} jobs")
-        except Exception as e:
-            logger.warning(f"[Main] SerpAPI failed: {e}")
+            return scrape_serpapi(roles, locations, serpapi_key)
+        tasks.append(("SerpAPI", _run_serpapi))
+
+    return tasks
+
+
+def run_scrapers(config, roles: list, serpapi_key: str = "", timeout_per_source: int = 300) -> list:
+    """Run all enabled scrapers concurrently and merge results.
+
+    These used to run strictly one after another, so one slow source
+    delayed every source behind it — worst case, risking the 45-minute
+    GitHub Actions job timeout. Running them in a thread pool bounds total
+    wall time to roughly the slowest single source instead of the sum of
+    all of them. Each source still gets a soft per-source timeout so one
+    stuck call doesn't dominate the run; the GitHub Actions job timeout
+    remains the hard backstop if a source ignores its own internal timeout.
+    """
+    sources = config.enabled_sources
+    locations = config.locations
+    tasks = _build_scraper_tasks(sources, roles, locations, serpapi_key)
+
+    if not tasks:
+        logger.warning("[Main] No sources enabled.")
+        return []
+
+    all_jobs = []
+    with ThreadPoolExecutor(max_workers=len(tasks), thread_name_prefix="scraper") as executor:
+        future_to_name = {executor.submit(fn): name for name, fn in tasks}
+        for future, name in future_to_name.items():
+            try:
+                jobs = future.result(timeout=timeout_per_source)
+                all_jobs.extend(jobs)
+                logger.info(f"[Main] {name}: {len(jobs)} jobs")
+            except FutureTimeoutError:
+                logger.warning(f"[Main] {name} exceeded {timeout_per_source}s — skipping its results for this run.")
+            except Exception as e:
+                logger.warning(f"[Main] {name} failed: {e}")
 
     logger.info(f"[Main] Total scraped: {len(all_jobs)} jobs")
     return all_jobs
 
 
 def load_resume_profiles(config, openrouter_key: str):
-    """Load and parse all resume profiles."""
+    """Load and parse all resume profiles.
+
+    Skips the (LLM-backed) parse entirely when the PDF's content hash
+    matches what's cached in config.json from a previous run — resumes
+    rarely change day to day, so re-parsing every run was pure wasted
+    OpenRouter free-tier quota for an identical result.
+    """
     parsed_profiles = []
     for profile_cfg in config.resume_profiles:
         pdf_path = profile_cfg.pdf_path
@@ -152,10 +158,21 @@ def load_resume_profiles(config, openrouter_key: str):
             logger.warning(f"[Main] Resume not found: {pdf_path}")
             continue
 
+        current_hash = compute_resume_hash(pdf_path)
+
+        if profile_cfg.extracted_full and profile_cfg.resume_hash == current_hash:
+            logger.info(f"[Main] Resume unchanged, using cached parse: {profile_cfg.name}")
+            parsed_profiles.append((profile_cfg.id, profile_cfg.name, dict(profile_cfg.extracted_full)))
+            continue
+
         logger.info(f"[Main] Parsing resume: {profile_cfg.name}")
         parsed = parse_resume(pdf_path, openrouter_key)
         if not parsed.get("error"):
             parsed_profiles.append((profile_cfg.id, profile_cfg.name, parsed))
+            try:
+                save_resume_cache(profile_cfg.id, current_hash, parsed)
+            except Exception as e:
+                logger.warning(f"[Main] Could not save resume cache for {profile_cfg.name}: {e}")
         else:
             logger.warning(f"[Main] Could not parse resume for {profile_cfg.name}")
 

@@ -18,7 +18,10 @@ env/
 .streamlit/secrets.toml
 secrets.toml
 
-# Data (SQLite DB committed, reports committed so History UI works)
+# Data — the dedup DB is ephemeral working state, kept in a GitHub Actions
+# cache instead (see .github/workflows/daily_job_hunt.yml), not git history.
+data/seen_jobs.db
+# Reports ARE committed so the Streamlit History UI can read past runs.
 !data/reports/*.xlsx
 
 # Resumes — committed to repo (needed by GitHub Actions)
