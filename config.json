@@ -80,25 +80,17 @@
       ],
       "extracted_full": {
         "name": "VINEETH SAGAR HL",
-        "branch": "Information Science and Engineering",
+        "branch": "ISE",
         "graduation_year": 2027,
         "college": "BMSIT&M",
         "technical_skills": [
-          "Python",
-          "Java",
-          "C",
-          "JavaScript",
-          "SQL",
-          "Node.js",
-          "PyTorch",
-          "FastAPI",
-          "Flask",
-          "Pandas",
-          "NumPy",
-          "Docker",
-          "GitHub",
-          "LangChain",
-          "Kubernetes"
+          "LLMs",
+          "RAG pipelines",
+          "AI agents",
+          "transformers",
+          "reinforcement learning",
+          "multimodal ML",
+          "model training & evaluation"
         ],
         "languages": [
           "Python",
@@ -109,14 +101,13 @@
           "Node.js"
         ],
         "frameworks": [
+          "Git",
           "PyTorch",
           "FastAPI",
           "Flask",
           "Pandas",
           "NumPy",
-          "n8n",
-          "LangChain",
-          "Git"
+          "n8n"
         ],
         "tools": [
           "GitHub",
@@ -124,10 +115,7 @@
           "Docker",
           "Jupyter",
           "n8n",
-          "Power BI",
-          "AWS",
-          "Kubernetes",
-          "Redis"
+          "Power BI"
         ],
         "domains": [
           "Machine Learning",
@@ -137,11 +125,21 @@
           "DevOps",
           "Data Preprocessing"
         ],
-        "projects_count": 3,
+        "certifications": [
+          "Oracle Cloud Infrastructure/AI Foundations",
+          "Google Cloud Skill Boost"
+        ],
+        "projects": [
+          "Zero-Day Attack Detection Using TGNN and Explainable AI in Kubernetes: Trained three models (TGNN, LSTM-AE, DeepLog) with temporal graph construction, integrated SHAP-based explainability with MITRE ATT&CK mapping, achieving 40% reduction in false positives and 2-second real-time anomaly detection.",
+          "Hybrid P2P-Cloud Anonymous Transfer Engine: Built stateless FastAPI backend with HS256 JWT auth and async Redis presence tracking; automated cloud cleanup via AWS Lambda burn-after-reading and S3 lifecycle rules; deployed non-root Docker containers under Kubernetes Secrets with least-privilege IAM policies, enforcing zero-trust principles.",
+          "NetCDF RAG Pipeline for Scientific Data: Constructed RAG pipeline over 5GB oceanographic data, parsed and embedded ~20k profile chunks into a vector database; developed async FastAPI service with LangChain generating fact-checked responses at 500 requests/minute and 95% factual accuracy; improved natural-language query accuracy from ~70% to ~90% and built interactive dashboard with multiple data widgets."
+        ],
+        "internships": [],
         "cgpa": "9.18",
-        "summary": "Information Science and Engineering student with hands-on experience building production-grade intelligent systems, agentic AI, RAG pipelines, and predictive models. Proven ability to design scalable, research-backed applications from agricultural systems to cybersecurity threat detection, with a focus on clean code architecture and deployment-ready solutions."
+        "summary": "Information Science and Engineering student at BMSIT&M with hands-on experience building production-grade intelligent systems, agentic AI, and RAG pipelines. Proven ability to design scalable, research-backed applications from agricultural systems to cybersecurity threat detection, emphasizing clean code architecture and deployment-ready solutions. Recognized hackathon prize winner and media leader, skilled in Python, Java, Docker, Kubernetes, and ML frameworks."
       },
-      "last_updated": "2026-09-05"
+      "last_updated": "2026-09-05",
+      "resume_hash": "3187173da60b90b332b1e5017ba76cf8aa806c5f09994c42a44ff0babbd425d4"
     }
   ]
 }
