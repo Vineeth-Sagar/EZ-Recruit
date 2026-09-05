@@ -12,6 +12,7 @@ lxml>=5.0.0
 
 # ── Streamlit app ─────────────────────────────────────────
 streamlit>=1.35.0
+pandas>=2.0.0  # transitively pulled in by streamlit already; pinned explicitly since pages/5_*.py imports it directly
 
 # ── Utilities ─────────────────────────────────────────────
 tenacity>=8.2.0

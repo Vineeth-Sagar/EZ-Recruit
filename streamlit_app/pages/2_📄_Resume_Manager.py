@@ -7,6 +7,7 @@ import json
 import uuid
 import sys
 import streamlit as st
+from utils.secrets_helper import get_secret
 from datetime import date
 from pathlib import Path
 
@@ -49,8 +50,8 @@ def save_cfg(cfg):
 def _push_config(cfg_data):
     """Helper to push config to GitHub."""
     try:
-        pat  = st.secrets.get("GH_PAT", "")
-        repo = st.secrets.get("GITHUB_REPO", "")
+        pat  = get_secret("GH_PAT", "")
+        repo = get_secret("GITHUB_REPO", "")
         if pat and repo:
             from utils.github_sync import push_config
             push_config(cfg_data, pat, repo)
@@ -116,8 +117,8 @@ if profiles:
                 fpath.unlink()
             # Push delete to GitHub
             try:
-                pat = st.secrets.get("GH_PAT","")
-                repo = st.secrets.get("GITHUB_REPO","")
+                pat = get_secret("GH_PAT","")
+                repo = get_secret("GITHUB_REPO","")
                 if pat and repo:
                     from utils.github_sync import delete_resume
                     delete_resume(fname, pat, repo)
@@ -166,7 +167,7 @@ with st.form("upload_form", clear_on_submit=True):
             pdf_bytes = uploaded_file.read()
 
             # Try to get OpenRouter key
-            openrouter_key = st.secrets.get("OPENROUTER_API_KEY", "")
+            openrouter_key = get_secret("OPENROUTER_API_KEY", "")
             extracted = {}
 
             if openrouter_key:
@@ -212,8 +213,8 @@ with st.form("upload_form", clear_on_submit=True):
             save_cfg(cfg)
 
             # Push to GitHub
-            pat  = st.secrets.get("GH_PAT", "")
-            repo = st.secrets.get("GITHUB_REPO", "")
+            pat  = get_secret("GH_PAT", "")
+            repo = get_secret("GITHUB_REPO", "")
             if pat and repo:
                 try:
                     from utils.github_sync import push_resume, push_config

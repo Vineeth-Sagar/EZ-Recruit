@@ -4,6 +4,7 @@ View and download past daily Excel reports.
 """
 import sys
 import streamlit as st
+from utils.secrets_helper import get_secret
 import requests
 from pathlib import Path
 from datetime import datetime
@@ -34,8 +35,8 @@ local_reports = sorted(REPORTS_DIR.glob("*.xlsx"), reverse=True)
 # ── GitHub reports (if PAT available) ────────────────────────
 gh_reports = []
 try:
-    pat  = st.secrets.get("GH_PAT", "")
-    repo = st.secrets.get("GITHUB_REPO", "")
+    pat  = get_secret("GH_PAT", "")
+    repo = get_secret("GITHUB_REPO", "")
     if pat and repo:
         from utils.github_sync import list_reports
         gh_reports = list_reports(pat, repo)

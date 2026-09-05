@@ -4,6 +4,7 @@ Manually trigger the GitHub Actions workflow for an immediate job search.
 """
 import sys
 import streamlit as st
+from utils.secrets_helper import get_secret
 from pathlib import Path
 from datetime import datetime
 
@@ -33,9 +34,9 @@ st.subheader("✅ Pre-flight Check")
 checks = {
     "At least 1 resume profile added":  profiles_count > 0,
     "Recipient email configured":        email_set,
-    "GH_PAT secret available":          bool(st.secrets.get("GH_PAT", "")),
-    "GITHUB_REPO secret set":            bool(st.secrets.get("GITHUB_REPO", "")),
-    "OPENROUTER_API_KEY secret set":         bool(st.secrets.get("OPENROUTER_API_KEY", "")),
+    "GH_PAT secret available":          bool(get_secret("GH_PAT", "")),
+    "GITHUB_REPO secret set":            bool(get_secret("GITHUB_REPO", "")),
+    "OPENROUTER_API_KEY secret set":         bool(get_secret("OPENROUTER_API_KEY", "")),
 }
 
 all_ready = True
@@ -57,8 +58,8 @@ if all_ready:
             with st.spinner("Triggering GitHub Actions workflow…"):
                 try:
                     from utils.github_sync import trigger_workflow
-                    pat  = st.secrets.get("GH_PAT", "")
-                    repo = st.secrets.get("GITHUB_REPO", "")
+                    pat  = get_secret("GH_PAT", "")
+                    repo = get_secret("GITHUB_REPO", "")
                     success = trigger_workflow(pat, repo)
 
                     if success:

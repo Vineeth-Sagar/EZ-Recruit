@@ -4,6 +4,7 @@ All user preferences — configured once, used daily.
 """
 import json
 import streamlit as st
+from utils.secrets_helper import get_secret
 from pathlib import Path
 
 st.set_page_config(page_title="Settings — OpportunityBot", page_icon="⚙️", layout="wide")
@@ -231,8 +232,8 @@ if save_clicked:
 
     # Push to GitHub if PAT available
     try:
-        pat = st.secrets.get("GH_PAT", "")
-        repo_name = st.secrets.get("GITHUB_REPO", "")
+        pat = get_secret("GH_PAT", "")
+        repo_name = get_secret("GITHUB_REPO", "")
         if pat and repo_name:
             import sys
             sys.path.insert(0, str(Path(__file__).parent.parent))

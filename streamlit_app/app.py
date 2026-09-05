@@ -3,6 +3,7 @@ app.py — OpportunityBot Configuration Web App (Main Entry)
 Hosted FREE on Streamlit Community Cloud
 """
 import streamlit as st
+from utils.secrets_helper import get_secret
 
 st.set_page_config(
     page_title="OpportunityBot — Control Panel",
@@ -110,30 +111,37 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Navigation cards ─────────────────────────────────────────
 st.subheader("📂 Quick Navigation")
-nc1, nc2, nc3, nc4 = st.columns(4)
+nc1, nc2, nc3, nc4, nc5 = st.columns(5)
 
 with nc1:
+    st.markdown("""<div class="nav-card">
+      <div class="icon">📈</div>
+      <div class="title">Today's Matches</div>
+      <div class="desc">Browse & filter matched jobs live — no Excel needed</div>
+    </div>""", unsafe_allow_html=True)
+
+with nc2:
     st.markdown("""<div class="nav-card">
       <div class="icon">⚙️</div>
       <div class="title">Settings</div>
       <div class="desc">Configure email, preferences, watchlist & sources</div>
     </div>""", unsafe_allow_html=True)
 
-with nc2:
+with nc3:
     st.markdown("""<div class="nav-card">
       <div class="icon">📄</div>
       <div class="title">Resume Manager</div>
       <div class="desc">Upload resumes & set target roles per profile</div>
     </div>""", unsafe_allow_html=True)
 
-with nc3:
+with nc4:
     st.markdown("""<div class="nav-card">
       <div class="icon">📊</div>
       <div class="title">History</div>
       <div class="desc">View & download past daily reports</div>
     </div>""", unsafe_allow_html=True)
 
-with nc4:
+with nc5:
     st.markdown("""<div class="nav-card">
       <div class="icon">🧪</div>
       <div class="title">Test Run</div>
@@ -147,8 +155,8 @@ st.markdown("---")
 st.subheader("🚀 Setup Checklist")
 
 checks = [
-    ("OpenRouter API Key set",           bool(st.secrets.get("OPENROUTER_API_KEY", "")) if hasattr(st, "secrets") else False),
-    ("Gmail App Password set",       bool(st.secrets.get("GMAIL_APP_PASSWORD", "")) if hasattr(st, "secrets") else False),
+    ("OpenRouter API Key set",       bool(get_secret("OPENROUTER_API_KEY"))),
+    ("Gmail App Password set",       bool(get_secret("GMAIL_APP_PASSWORD"))),
     ("Recipient email configured",   is_configured),
     ("At least 1 resume uploaded",   profiles_count > 0),
     ("Target roles set",             any(len(p.get("target_roles",[])) > 0 for p in cfg.get("resume_profiles",[]))),
