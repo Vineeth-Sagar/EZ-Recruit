@@ -1,0 +1,60 @@
+{
+  "profile": {
+    "name": "YOUR NAME HERE",
+    "branch": "CSE",
+    "graduation_year": 2027,
+    "college": ""
+  },
+  "email": {
+    "sender_email": "majorproject2026bmsit@gmail.com",
+    "recipient_email": "majorproject2026bmsit@gmail.com",
+    "send_time_ist": "07:00"
+  },
+  "preferences": {
+    "locations": [
+      "Bengaluru"
+    ],
+    "job_types": [
+      "Internship",
+      "Full-time"
+    ],
+    "min_salary_lpa": 0,
+    "min_match_percent": 50,
+    "batch_year": 2027
+  },
+  "watchlist_companies": [
+    "Deloitte",
+    "Accenture",
+    "Stripe",
+    "Google"
+  ],
+  "enabled_sources": {
+    "linkedin": true,
+    "indeed": true,
+    "glassdoor": true,
+    "naukri": false,
+    "wellfound": false,
+    "internshala": false,
+    "unstop": false,
+    "cutshort": false,
+    "yc_jobs": true,
+    "hackernews": false,
+    "serpapi": true
+  },
+  "resume_profiles": [
+    {
+      "id": "0ccabaeb-78cf-4aa9-8cd4-d6bae36ca17e",
+      "name": "Ai Engineer",
+      "filename": "ai_engineer_497028.pdf",
+      "target_roles": [
+        "AI intern",
+        "Engineering Trainee",
+        "intern",
+        "data science intern"
+      ],
+      "extracted_skills": [],
+      "extracted_full": {},
+      "last_updated": "2026-07-03"
+    }
+  ]
+}
