@@ -140,3 +140,63 @@ def trigger_workflow(pat: str, repo_full_name: str, workflow_file: str = "daily_
     except Exception as e:
         logger.error(f"[GH Sync] Failed to trigger workflow: {e}")
         return False
+
+
+# ─────────────────────────────────────────────────────────────────
+# Live run tracking (Test Run page "watch it happen" feature)
+#
+# These use raw REST calls with the PAT as a bearer token rather than
+# PyGithub, specifically so we can reach the jobs/logs endpoints — and
+# because it's *your own* PAT (repo-scoped), these succeed where an
+# unauthenticated call to the same endpoints gets a 403 requiring admin
+# rights.
+# ─────────────────────────────────────────────────────────────────
+
+GITHUB_API = "https://api.github.com"
+
+
+def _api_headers(pat: str) -> dict:
+    return {"Authorization": f"Bearer {pat}", "Accept": "application/vnd.github+json"}
+
+
+def get_latest_run(pat: str, repo_full_name: str, workflow_file: str = "daily_job_hunt.yml") -> Optional[dict]:
+    """Return the most recent run of this workflow (any status), or None."""
+    import requests
+    url = f"{GITHUB_API}/repos/{repo_full_name}/actions/workflows/{workflow_file}/runs"
+    try:
+        resp = requests.get(url, headers=_api_headers(pat), params={"per_page": 1}, timeout=15)
+        resp.raise_for_status()
+        runs = resp.json().get("workflow_runs", [])
+        return runs[0] if runs else None
+    except Exception as e:
+        logger.error(f"[GH Sync] Failed to fetch latest run: {e}")
+        return None
+
+
+def get_run_jobs(pat: str, repo_full_name: str, run_id: int) -> list:
+    """Return the jobs (with their steps) for a specific workflow run."""
+    import requests
+    url = f"{GITHUB_API}/repos/{repo_full_name}/actions/runs/{run_id}/jobs"
+    try:
+        resp = requests.get(url, headers=_api_headers(pat), timeout=15)
+        resp.raise_for_status()
+        return resp.json().get("jobs", [])
+    except Exception as e:
+        logger.error(f"[GH Sync] Failed to fetch run jobs: {e}")
+        return []
+
+
+def get_job_log_tail(pat: str, repo_full_name: str, job_id: int, max_lines: int = 60) -> str:
+    """Return the last `max_lines` lines of a job's raw log. Requires a PAT
+    with admin rights on the repo — which your own repo-scoped PAT has."""
+    import requests
+    url = f"{GITHUB_API}/repos/{repo_full_name}/actions/jobs/{job_id}/logs"
+    try:
+        resp = requests.get(url, headers=_api_headers(pat), timeout=15)
+        if resp.status_code != 200:
+            return ""
+        lines = resp.text.splitlines()
+        return "\n".join(lines[-max_lines:])
+    except Exception as e:
+        logger.error(f"[GH Sync] Failed to fetch job log: {e}")
+        return ""
