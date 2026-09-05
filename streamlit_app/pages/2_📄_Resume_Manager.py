@@ -8,6 +8,7 @@ import uuid
 import sys
 import streamlit as st
 from utils.secrets_helper import get_secret
+from utils.theme import inject_base_css
 from datetime import date
 from pathlib import Path
 
@@ -15,18 +16,7 @@ st.set_page_config(page_title="Resume Manager — OpportunityBot", page_icon="�
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-html,body,[class*="css"]{font-family:'Inter',sans-serif;}
-.resume-card{background:white;border:2px solid #e3e8f0;border-radius:14px;padding:1.5rem;
-  margin-bottom:1rem;transition:border-color 0.2s;}
-.resume-card:hover{border-color:#1565c0;}
-.skill-tag{display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;
-  border-radius:20px;font-size:0.8rem;margin:2px;font-weight:500;}
-.section-header{background:linear-gradient(135deg,#1565c0,#0d47a1);color:white;
-  padding:1rem 1.5rem;border-radius:10px;margin:1.5rem 0 1rem;font-weight:600;}
-</style>""", unsafe_allow_html=True)
+inject_base_css()
 
 st.title("📄 Resume Manager")
 st.caption("Upload different resumes for different roles. Each gets matched separately — the best score wins.")

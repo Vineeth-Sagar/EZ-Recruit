@@ -4,6 +4,7 @@ Hosted FREE on Streamlit Community Cloud
 """
 import streamlit as st
 from utils.secrets_helper import get_secret
+from utils.theme import inject_base_css
 
 st.set_page_config(
     page_title="OpportunityBot — Control Panel",
@@ -12,47 +13,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Global CSS ───────────────────────────────────────────────
+inject_base_css()
+
+# Page-specific: only app.py uses this hero banner.
 st.markdown("""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-  html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-
   .main-header {
-    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+    background: linear-gradient(135deg, var(--ob-accent) 0%, var(--ob-accent-dark) 100%);
     padding: 2rem; border-radius: 16px; text-align: center;
     margin-bottom: 1.5rem;
   }
   .main-header h1 { color: white; font-size: 2.2rem; margin: 0; }
   .main-header p  { color: #bbdefb; margin: 0.4rem 0 0; font-size: 1rem; }
-
-  .stat-card {
-    background: white; border-radius: 12px; padding: 1.2rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-left: 4px solid #1565c0; text-align: center;
-  }
-  .stat-card .number { font-size: 2rem; font-weight: 700; color: #1565c0; }
-  .stat-card .label  { color: #666; font-size: 0.85rem; }
-
-  .stButton > button {
-    background: linear-gradient(135deg, #1565c0, #0d47a1);
-    color: white; border: none; border-radius: 8px;
-    padding: 0.5rem 2rem; font-weight: 600;
-    transition: all 0.2s;
-  }
-  .stButton > button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(21,101,192,0.4); }
-
-  .nav-card {
-    background: white; border-radius: 12px; padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: pointer;
-    transition: all 0.2s; text-align: center; text-decoration: none;
-    border: 2px solid transparent;
-  }
-  .nav-card:hover { border-color: #1565c0; transform: translateY(-2px); }
-  .nav-card .icon { font-size: 2.5rem; }
-  .nav-card .title { font-weight: 600; margin-top: 0.5rem; }
-  .nav-card .desc  { color: #666; font-size: 0.85rem; }
 </style>
 """, unsafe_allow_html=True)
 

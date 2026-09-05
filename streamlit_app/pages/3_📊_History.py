@@ -5,6 +5,7 @@ View and download past daily Excel reports.
 import sys
 import streamlit as st
 from utils.secrets_helper import get_secret
+from utils.theme import inject_base_css
 import requests
 from pathlib import Path
 from datetime import datetime
@@ -13,14 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 st.set_page_config(page_title="History — OpportunityBot", page_icon="📊", layout="wide")
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-html,body,[class*="css"]{font-family:'Inter',sans-serif;}
-.report-card{background:white;border:1px solid #e3e8f0;border-radius:12px;
-  padding:1rem 1.5rem;margin-bottom:0.8rem;display:flex;align-items:center;
-  justify-content:space-between;}
-</style>""", unsafe_allow_html=True)
+inject_base_css()
 
 st.title("📊 Report History")
 st.caption("All past daily job reports. Download any as Excel.")

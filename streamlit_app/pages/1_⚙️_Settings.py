@@ -5,17 +5,12 @@ All user preferences — configured once, used daily.
 import json
 import streamlit as st
 from utils.secrets_helper import get_secret
+from utils.theme import inject_base_css
 from pathlib import Path
 
 st.set_page_config(page_title="Settings — OpportunityBot", page_icon="⚙️", layout="wide")
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-html,body,[class*="css"]{font-family:'Inter',sans-serif;}
-.section-header{background:linear-gradient(135deg,#1565c0,#0d47a1);color:white;padding:1rem 1.5rem;
-  border-radius:10px;margin:1.5rem 0 1rem;font-weight:600;font-size:1.05rem;}
-</style>""", unsafe_allow_html=True)
+inject_base_css()
 
 st.title("⚙️ Settings")
 st.caption("Configure everything here. Click **Save Settings** at the bottom to apply.")

@@ -10,10 +10,13 @@ from pathlib import Path
 
 import streamlit as st
 from utils.secrets_helper import get_secret
+from utils.theme import inject_base_css
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 st.set_page_config(page_title="Test Run — OpportunityBot", page_icon="🧪", layout="wide")
+
+inject_base_css()
 
 st.title("🧪 Test Run")
 st.caption("Trigger an immediate job search without waiting for tomorrow's scheduled run.")

@@ -11,20 +11,13 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from utils.secrets_helper import get_secret
+from utils.theme import inject_base_css
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 st.set_page_config(page_title="Today's Matches — OpportunityBot", page_icon="📈", layout="wide")
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-html,body,[class*="css"]{font-family:'Inter',sans-serif;}
-.stat-card{background:white;border-radius:12px;padding:1.2rem;box-shadow:0 2px 8px rgba(0,0,0,0.08);
-  border-left:4px solid #1565c0;text-align:center;}
-.stat-card .number{font-size:1.8rem;font-weight:700;color:#1565c0;}
-.stat-card .label{color:#666;font-size:0.85rem;}
-</style>""", unsafe_allow_html=True)
+inject_base_css()
 
 st.title("📈 Today's Matches")
 st.caption("Browse, filter, and apply — right here, no Excel download required.")
