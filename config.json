@@ -43,18 +43,105 @@
   },
   "resume_profiles": [
     {
-      "id": "0ccabaeb-78cf-4aa9-8cd4-d6bae36ca17e",
-      "name": "Ai Engineer",
-      "filename": "ai_engineer_497028.pdf",
+      "id": "8014e587-d608-41da-860e-0d48fc61af4d",
+      "name": "SDE Profile",
+      "filename": "sde_profile_139fb4.pdf",
       "target_roles": [
-        "AI intern",
-        "Engineering Trainee",
-        "intern",
-        "data science intern"
+        "SDE Intern",
+        "Software Engineer Intern",
+        "Backend Developer"
       ],
-      "extracted_skills": [],
-      "extracted_full": {},
-      "last_updated": "2026-07-03"
+      "extracted_skills": [
+        "Python",
+        "Java",
+        "C",
+        "JavaScript",
+        "SQL",
+        "Node.js",
+        "PyTorch",
+        "FastAPI",
+        "Flask",
+        "Pandas",
+        "NumPy",
+        "Docker",
+        "GitHub",
+        "LangChain",
+        "Kubernetes",
+        "Python",
+        "Java",
+        "C",
+        "JavaScript",
+        "SQL",
+        "Node.js",
+        "PyTorch",
+        "FastAPI",
+        "Flask",
+        "Pandas"
+      ],
+      "extracted_full": {
+        "name": "VINEETH SAGAR HL",
+        "branch": "Information Science and Engineering",
+        "graduation_year": 2027,
+        "college": "BMSIT&M",
+        "technical_skills": [
+          "Python",
+          "Java",
+          "C",
+          "JavaScript",
+          "SQL",
+          "Node.js",
+          "PyTorch",
+          "FastAPI",
+          "Flask",
+          "Pandas",
+          "NumPy",
+          "Docker",
+          "GitHub",
+          "LangChain",
+          "Kubernetes"
+        ],
+        "languages": [
+          "Python",
+          "Java",
+          "C",
+          "JavaScript",
+          "SQL",
+          "Node.js"
+        ],
+        "frameworks": [
+          "PyTorch",
+          "FastAPI",
+          "Flask",
+          "Pandas",
+          "NumPy",
+          "n8n",
+          "LangChain",
+          "Git"
+        ],
+        "tools": [
+          "GitHub",
+          "Vercel",
+          "Docker",
+          "Jupyter",
+          "n8n",
+          "Power BI",
+          "AWS",
+          "Kubernetes",
+          "Redis"
+        ],
+        "domains": [
+          "Machine Learning",
+          "RAG Systems",
+          "Agentic AI",
+          "Web Dev",
+          "DevOps",
+          "Data Preprocessing"
+        ],
+        "projects_count": 3,
+        "cgpa": "9.18",
+        "summary": "Information Science and Engineering student with hands-on experience building production-grade intelligent systems, agentic AI, RAG pipelines, and predictive models. Proven ability to design scalable, research-backed applications from agricultural systems to cybersecurity threat detection, with a focus on clean code architecture and deployment-ready solutions."
+      },
+      "last_updated": "2026-09-05"
     }
   ]
 }
