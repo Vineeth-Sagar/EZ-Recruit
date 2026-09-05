@@ -26,7 +26,7 @@ from job_hunter.config_loader import load_config, get_openrouter_api_key, get_gm
 from job_hunter.deduplicator import filter_new_jobs, mark_jobs_seen, clear_old_entries
 from job_hunter.ai_engine import (
     parse_resume, batch_match_jobs_against_all_profiles,
-    generate_resume_tips, extract_text_from_pdf,
+    generate_resume_tips, extract_text_from_pdf, AI_UNAVAILABLE_MARKER,
 )
 from job_hunter.excel_builder import build_excel
 from job_hunter.emailer import send_report_email, send_error_alert
@@ -225,10 +225,34 @@ def run():
     # ── AI Matching ──────────────────────────────────────────
     logger.info(f"[Main] Running AI batch matching for {len(new_jobs)} jobs…")
     
+    batch_call_raised = False
     try:
         batch_match_jobs_against_all_profiles(new_jobs, resume_profiles_data, openrouter_key)
     except Exception as e:
         logger.error(f"[Main] Batch matching failed: {e}")
+        batch_call_raised = True
+
+    # ── AI outage detection ──────────────────────────────────
+    # If every job fell back to keyword scoring (or the batch call blew up
+    # entirely), the AI backend is broken — bad/rotated API key, invalid
+    # model id, OpenRouter down, etc. Fallback scoring skews toward 0% (it
+    # only has whatever the resume parse also managed to extract), so this
+    # would otherwise silently look like "no good matches today" and the
+    # run exits with no email and no error alert at all.
+    ai_completely_failed = batch_call_raised or (
+        bool(new_jobs) and
+        all(job.get("why_good_fit") == AI_UNAVAILABLE_MARKER for job in new_jobs)
+    )
+    if ai_completely_failed:
+        logger.error("[Main] AI matching failed for every job this run — falling back to an alert instead of a (likely wrong) report.")
+        send_error_alert(
+            config.sender_email, gmail_pwd, config.recipient_email,
+            "AI matching failed for all jobs today, so no report was generated. "
+            "This usually means OPENROUTER_API_KEY is missing/expired, the configured "
+            "OPENROUTER_MODEL is invalid, or OpenRouter is having an outage. "
+            "Check the GitHub Actions logs for the actual API error."
+        )
+        return
 
     matched_jobs = []
     all_missing_skills = []

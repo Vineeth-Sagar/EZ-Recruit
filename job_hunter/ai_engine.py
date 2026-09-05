@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 # Override via OPENROUTER_MODEL if you want a different free model.
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
 
+# Marker set on every job's `why_good_fit` when the LLM call failed and we
+# fell back to keyword scoring. main.py checks for this across a whole run
+# to detect a total AI outage (bad key, bad model id, provider down) instead
+# of silently treating universal 0% scores as "no good matches today".
+AI_UNAVAILABLE_MARKER = "Keyword-based match (AI scoring unavailable)"
+
 
 # ─────────────────────────────────────────────────────────────────
 # Client initialisation (lazy, to avoid import-time errors)
@@ -271,7 +277,7 @@ def _fallback_keyword_score(job: Dict, resume_profile: Dict) -> Dict:
         "match_percentage": pct,
         "matched_skills": matched[:10],
         "missing_skills": [],
-        "why_good_fit": "Keyword-based match (AI scoring unavailable)",
+        "why_good_fit": AI_UNAVAILABLE_MARKER,
         "urgency": "MEDIUM" if pct >= 60 else "LOW",
         "recommended_action": "Apply this week" if pct >= 60 else "Optional",
         "job_tags": [],
