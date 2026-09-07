@@ -12,8 +12,11 @@ from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
-# See job_hunter/ai_engine.py for why this can't be "openrouter/free".
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
+# See job_hunter/ai_engine.py for why this can't be "openrouter/free", and
+# for the 2026-09-07 note on why the default isn't nemotron-3-super anymore
+# (that specific checkpoint started 404ing at the provider level).
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-3.5-lightning:free")
+OPENROUTER_FALLBACK_MODEL = os.environ.get("OPENROUTER_FALLBACK_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
 
 
 def extract_skills_preview(pdf_bytes: bytes, openrouter_api_key: str) -> Dict:
@@ -61,12 +64,22 @@ Analyse this resume and return ONLY a valid JSON object (no markdown, no explana
 Resume:
 {text[:5000]}
 """
-        response = client.chat.completions.create(
-            model=OPENROUTER_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0
-        )
-        raw = response.choices[0].message.content or ""
+        def _call(model: str) -> str:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0
+            )
+            return response.choices[0].message.content or ""
+
+        try:
+            raw = _call(OPENROUTER_MODEL)
+        except Exception as e:
+            logger.warning(f"[LLM Preview] {OPENROUTER_MODEL} failed ({e}), trying fallback {OPENROUTER_FALLBACK_MODEL}")
+            raw = ""
+
+        if not raw and OPENROUTER_FALLBACK_MODEL and OPENROUTER_FALLBACK_MODEL != OPENROUTER_MODEL:
+            raw = _call(OPENROUTER_FALLBACK_MODEL)
 
         # Parse JSON
         parsed = {}

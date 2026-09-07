@@ -18,7 +18,17 @@ logger = logging.getLogger(__name__)
 # "<vendor>/<model>:free") — every call with it fails with a 400, which
 # _safe_generate silently swallows and turns into an empty response.
 # Override via OPENROUTER_MODEL if you want a different free model.
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
+#
+# 2026-09-07: the previous default, nvidia/nemotron-3-super-120b-a12b:free,
+# started 404ing at the provider level (still listed in OpenRouter's model
+# catalog, but the Nvidia-hosted backend for that specific checkpoint
+# returned "Provider returned error" / 404) — caught by the weekly
+# openrouter_selftest.yml run within a day, exactly as designed. Switched
+# to nemotron-3.5-lightning, and added OPENROUTER_FALLBACK_MODEL below so
+# a single provider's outage on one checkpoint doesn't take down every AI
+# call again — this is a different, unrelated checkpoint/provider path.
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-3.5-lightning:free")
+OPENROUTER_FALLBACK_MODEL = os.environ.get("OPENROUTER_FALLBACK_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
 
 # Marker set on every job's `why_good_fit` when the LLM call failed and we
 # fell back to keyword scoring. main.py checks for this across a whole run
@@ -45,12 +55,12 @@ def _get_client(api_key: str):
     return _client
 
 
-def _safe_generate(client, prompt: str, retries: int = 5) -> str:
+def _safe_generate(client, prompt: str, model: str, retries: int = 5) -> str:
     """Call OpenRouter with exponential backoff on rate-limit errors."""
     for attempt in range(retries):
         try:
             response = client.chat.completions.create(
-                model=OPENROUTER_MODEL,
+                model=model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0
             )
@@ -60,15 +70,32 @@ def _safe_generate(client, prompt: str, retries: int = 5) -> str:
             err = str(e).lower()
             if "429" in err or "rate limit" in err:
                 wait = (2 ** attempt) * 5
-                logger.warning(f"[OpenRouter] Rate limit. Waiting {wait}s…")
+                logger.warning(f"[OpenRouter] Rate limit on {model}. Waiting {wait}s…")
                 time.sleep(wait)
             elif "timeout" in err:
-                logger.warning(f"[OpenRouter] Request timed out. Retrying attempt {attempt+1}/{retries}…")
+                logger.warning(f"[OpenRouter] Request to {model} timed out. Retrying attempt {attempt+1}/{retries}…")
                 time.sleep(2)
             else:
-                logger.error(f"[OpenRouter] Error: {e}")
+                logger.error(f"[OpenRouter] Error from {model}: {e}")
                 return ""
     return ""
+
+
+def _generate(client, prompt: str) -> str:
+    """Call the primary model, falling back to OPENROUTER_FALLBACK_MODEL if
+    it comes back completely empty (bad slug, provider outage/404, etc.).
+    This is the single point every caller should go through — direct calls
+    to _safe_generate skip the fallback and will go silent on exactly the
+    kind of provider hiccup that took down nemotron-3-super on 2026-09-07."""
+    result = _safe_generate(client, prompt, model=OPENROUTER_MODEL)
+    if result:
+        return result
+
+    if OPENROUTER_FALLBACK_MODEL and OPENROUTER_FALLBACK_MODEL != OPENROUTER_MODEL:
+        logger.warning(f"[OpenRouter] {OPENROUTER_MODEL} returned nothing — trying fallback {OPENROUTER_FALLBACK_MODEL}…")
+        result = _safe_generate(client, prompt, model=OPENROUTER_FALLBACK_MODEL, retries=2)
+
+    return result
 
 
 def _extract_json(text: str) -> Dict:
@@ -168,7 +195,7 @@ def parse_resume(pdf_path: Path, api_key: str) -> Dict:
     client = _get_client(api_key)
     prompt = RESUME_PARSE_PROMPT.format(resume_text=resume_text[:6000])  # Cap to 6k chars
 
-    raw = _safe_generate(client, prompt)
+    raw = _generate(client, prompt)
     parsed = _extract_json(raw)
 
     if not parsed:
@@ -256,7 +283,7 @@ def batch_calculate_match(
         jobs_json=json.dumps(jobs_for_prompt, indent=2)
     )
 
-    raw = _safe_generate(client, prompt)
+    raw = _generate(client, prompt)
     result_dict = _extract_json(raw)
     
     if not isinstance(result_dict, dict):
@@ -379,7 +406,7 @@ def generate_resume_tips(
         current_skills=", ".join(current[:20]),
     )
 
-    raw = _safe_generate(client, prompt)
+    raw = _generate(client, prompt)
     try:
         tips = json.loads(raw.strip())
         if isinstance(tips, list):

@@ -7,6 +7,8 @@ so they run fast, free, and in CI without secrets.
 """
 import hashlib
 
+import pytest
+
 from job_hunter import ai_engine
 
 
@@ -82,3 +84,62 @@ def test_compute_resume_hash_changes_when_content_changes(tmp_path):
     hash_after = ai_engine.compute_resume_hash(pdf_before)
 
     assert hash_before != hash_after
+
+
+# ── _generate (primary model -> fallback model) ──────────────────────────
+# Regression coverage for the 2026-09-07 incident: the primary model
+# (nemotron-3-super) started 404ing at the provider level. _generate()
+# exists specifically so that class of failure doesn't take down every AI
+# call the way the original "openrouter/free" bug did.
+
+def test_generate_uses_primary_model_when_it_succeeds(monkeypatch):
+    calls = []
+
+    def fake_safe_generate(client, prompt, model, retries=5):
+        calls.append(model)
+        return "primary response"
+
+    monkeypatch.setattr(ai_engine, "_safe_generate", fake_safe_generate)
+
+    result = ai_engine._generate(client=None, prompt="hi")
+
+    assert result == "primary response"
+    assert calls == [ai_engine.OPENROUTER_MODEL]  # fallback never called
+
+
+def test_generate_falls_back_when_primary_returns_empty(monkeypatch):
+    calls = []
+
+    def fake_safe_generate(client, prompt, model, retries=5):
+        calls.append(model)
+        return "" if model == ai_engine.OPENROUTER_MODEL else "fallback response"
+
+    monkeypatch.setattr(ai_engine, "_safe_generate", fake_safe_generate)
+
+    result = ai_engine._generate(client=None, prompt="hi")
+
+    assert result == "fallback response"
+    assert calls == [ai_engine.OPENROUTER_MODEL, ai_engine.OPENROUTER_FALLBACK_MODEL]
+
+
+def test_generate_returns_empty_when_both_models_fail(monkeypatch):
+    monkeypatch.setattr(ai_engine, "_safe_generate", lambda client, prompt, model, retries=5: "")
+
+    result = ai_engine._generate(client=None, prompt="hi")
+
+    assert result == ""
+
+
+def test_generate_does_not_call_fallback_twice_if_same_as_primary(monkeypatch):
+    calls = []
+
+    def fake_safe_generate(client, prompt, model, retries=5):
+        calls.append(model)
+        return ""
+
+    monkeypatch.setattr(ai_engine, "_safe_generate", fake_safe_generate)
+    monkeypatch.setattr(ai_engine, "OPENROUTER_FALLBACK_MODEL", ai_engine.OPENROUTER_MODEL)
+
+    ai_engine._generate(client=None, prompt="hi")
+
+    assert calls == [ai_engine.OPENROUTER_MODEL]  # not called again as "fallback"
