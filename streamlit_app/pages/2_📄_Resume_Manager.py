@@ -4,6 +4,7 @@ Upload multiple resumes, set target roles per profile,
 see AI-extracted skills in real time.
 """
 import json
+import re
 import uuid
 import sys
 import streamlit as st
@@ -174,7 +175,13 @@ with st.form("upload_form", clear_on_submit=True):
                 st.info("Set OPENROUTER_API_KEY in Streamlit Secrets for automatic skill extraction.")
 
             # Save PDF locally
-            safe_name = profile_name.lower().replace(" ", "_")
+            # Only spaces were being replaced here before — any other
+            # path-unsafe character in the profile name (e.g. "AI/ML
+            # Profile" -> "ai/ml_profile") survived into `filename` and
+            # made `RESUMES_DIR / filename` resolve into a subdirectory
+            # that doesn't exist, so `open(..., "wb")` failed with
+            # FileNotFoundError. Strip to a safe charset instead.
+            safe_name = re.sub(r"[^a-z0-9]+", "_", profile_name.lower()).strip("_") or "profile"
             filename  = f"{safe_name}_{uuid.uuid4().hex[:6]}.pdf"
             local_path = RESUMES_DIR / filename
             with open(local_path, "wb") as f:
